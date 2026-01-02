@@ -1,0 +1,95 @@
+/*
+===============================================================================
+Stored Procedure: Load Bronze Layer (Source -> Bronze)
+===============================================================================
+Script Purpose:
+    This stored procedure loads the data into bronze schema from external CSV files. 
+    --> Truncates the bronze tables before loading data.
+    --> Uses the `BULK INSERT` command to load data from csv Files to bronze tables.
+    --> Has load duration for each table and also a totale load duration.
+To use this stored procedure:
+    EXEC bronze.load_bronze;
+
+===============================================================================
+*/
+
+
+
+CREATE OR ALTER PROCEDURE bronze.load_bronze AS
+BEGIN
+	DECLARE @start_time DATETIME, @end_time DATETIME,@batch_start_time DATETIME,@batch_end_time DATETIME;
+	BEGIN TRY
+		SET @batch_start_time=GETDATE();
+		PRINT'============================';
+		PRINT'Loading Bronze Layer';
+		PRINT'============================';
+
+		PRINT'----------------------------';
+		PRINT'Loading CRM tables';
+		PRINT'----------------------------';
+
+		SET @start_time=GETDATE();
+		PRINT'>>Truncating table: bronze.crm_cust_info';
+		TRUNCATE TABLE bronze.crm_cust_info;
+
+		PRINT'>>Inserting Data into: bronze.crm_cust_info';
+		BULK INSERT bronze.crm_cust_info
+		FROM 'C:\Users\alvin\OneDrive\Desktop\sql-data-warehouse-project-main\sql-data-warehouse-project-main\datasets\source_crm\cust_info.csv'
+		WITH (
+			FIRSTROW=2,
+			FIELDTERMINATOR=',',
+			TABLOCK
+		);
+		SET @end_time=GETDATE();
+		PRINT'>>LOAD DURATION:' +CAST(DATEDIFF(second,@start_time,@end_time)AS NVARCHAR)+' seconds';
+		PRINT'-----------------------------------------------------------------------------'
+		
+		SET @start_time=GETDATE();
+		PRINT'>>Truncating table: bronze.crm_prd_info';
+		TRUNCATE TABLE bronze.crm_prd_info;
+
+		PRINT'>>Inserting Data into: bronze.crm_prd_info';
+		BULK INSERT bronze.crm_prd_info
+		FROM 'C:\Users\alvin\OneDrive\Desktop\sql-data-warehouse-project-main\sql-data-warehouse-project-main\datasets\source_crm\prd_info.csv'
+		WITH (
+			FIRSTROW=2,
+			FIELDTERMINATOR=',',
+			TABLOCK
+		);
+		SET @end_time=GETDATE();
+		PRINT'>>LOAD DURATION:' +CAST(DATEDIFF(second,@start_time,@end_time)AS NVARCHAR)+' seconds';
+		PRINT'-----------------------------------------------------------------------------'
+		
+
+		SET @start_time=GETDATE();
+		PRINT'>>Truncating table: bronze.crm_sales_details';
+		TRUNCATE TABLE bronze.crm_sales_details;
+
+		PRINT'>>Inserting Data into: bronze.crm_sales_details';
+		BULK INSERT bronze.crm_sales_details
+		FROM 'C:\Users\alvin\OneDrive\Desktop\sql-data-warehouse-project-main\sql-data-warehouse-project-main\datasets\source_crm\sales_details.csv'
+		WITH (
+			FIRSTROW=2,
+			FIELDTERMINATOR=',',
+			TABLOCK
+		);
+		SET @end_time=GETDATE();
+		PRINT'>>LOAD DURATION:' +CAST(DATEDIFF(second,@start_time,@end_time)AS NVARCHAR)+' seconds';
+		PRINT'------------------------------------------------';
+		SET @batch_end_time=GETDATE();
+		PRINT'================================================'
+		PRINT'LOADING BRONZE LAYER COMPLETE'
+		PRINT'TOTAL LOADING DURATION:'+ CAST(DATEDIFF(second,@batch_start_time,@batch_end_time)AS NVARCHAR)+' seconds';
+		PRINT'================================================'
+
+	
+	
+	END TRY
+	BEGIN CATCH
+		PRINT'================================================'
+		PRINT'ERROR OCCURED WHEN LOADING BRONZE LAYER'
+		PRINT'ERROR MESSAGE'+ERROR_MESSAGE();
+		PRINT'ERROR MESSAGE'+CAST(ERROR_NUMBER() AS NVARCHAR);
+		PRINT'================================================'
+	END CATCH
+END
